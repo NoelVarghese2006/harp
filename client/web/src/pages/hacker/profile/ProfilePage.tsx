@@ -28,7 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { errorAlert, getRequest } from "@/shared/lib/api";
 import { usePushSubscription } from "@/shared/push/usePushSubscription";
-import { useUserStore } from "@/shared/stores";
+import { usePointsNameStore, useUserStore } from "@/shared/stores";
 import type { Application } from "@/types";
 
 import {
@@ -72,6 +72,9 @@ export default function ProfilePage() {
   const push = usePushSubscription();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const pointsName = usePointsNameStore((s) => s.pointsName);
+  const fetchPointsName = usePointsNameStore((s) => s.fetchPointsName);
+
   const [application, setApplication] = useState<Application | null>(null);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
@@ -91,8 +94,9 @@ export default function ProfilePage() {
       }
     };
     load();
+    fetchPointsName(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [fetchPointsName]);
 
   const name = displayName(application);
   const canEditResume = application?.status === "draft";
@@ -226,13 +230,17 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tavern points placeholder */}
+      {/* Points */}
       <div className="mt-6 flex items-center justify-between rounded-xl border border-[#E5E5E5] px-5 py-4">
         <div>
-          <p className="text-sm font-normal text-black">Tavern Points</p>
-          <p className="text-xs font-light text-[#8A8A8A]">Coming soon</p>
+          <p className="text-sm font-normal text-black">{pointsName}</p>
+          <p className="text-xs font-light text-[#8A8A8A]">
+            Earned from check-ins and events
+          </p>
         </div>
-        <span className="text-2xl font-light text-[#B8B8B8]">—</span>
+        <span className="text-2xl font-light text-black tabular-nums">
+          {application?.points ?? 0}
+        </span>
       </div>
 
       {/* Settings */}
