@@ -32,7 +32,7 @@ interface QuickLink {
   to?: string;
 }
 
-const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || "hello@hackutd.co";
+const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || "harp@hackutd.co";
 
 const QUICK_LINKS: QuickLink[] = [
   { label: "Hacker Pack", icon: BookOpen, to: "/app/hacker-pack" },

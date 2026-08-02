@@ -258,18 +258,21 @@ export function ApplicationWizard({ userEmail }: ApplicationWizardProps) {
     }, AUTOSAVE_DEBOUNCE_MS);
   }, [cancelPendingAutosave, saveDraft]);
 
-  // Autosave whenever the user edits a field. (form.watch returns an RHF
-  // subscription; the React Compiler flags it as a non-memoizable library
-  // call, which is a benign informational warning here.)
+  // Autosave whenever the user edits a field. Uses form.subscribe rather than
+  // form.watch: watch() returns a non-memoizable value that makes the React
+  // Compiler skip optimizing this component entirely.
   useEffect(() => {
     if (loading || !applicationsEnabled || !isDraft) return;
-    const subscription = form.watch((_, { name }) => {
-      // Ignore programmatic bulk updates like form.reset
-      if (!name) return;
-      scheduleAutosave();
+    const unsubscribe = form.subscribe({
+      formState: { values: true },
+      callback: ({ name }) => {
+        // Ignore programmatic bulk updates like form.reset
+        if (!name) return;
+        scheduleAutosave();
+      },
     });
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
       cancelPendingAutosave();
     };
   }, [
