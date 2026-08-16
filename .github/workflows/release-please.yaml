@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           # this assumes that you have created a personal access token
           # (PAT) and configured it as a GitHub action secret named
@@ -23,3 +24,23 @@ jobs:
           # this is a built-in strategy in release-please, see "Action Inputs"
           # for more options
           release-type: simple
+
+      - name: Check out the released commit
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.sha }}
+          token: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+
+      - name: Create version snapshot branch
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --heads origin "refs/heads/${RELEASE_VERSION}" > /dev/null; then
+            echo "::error::Version branch ${RELEASE_VERSION} already exists; refusing to overwrite it."
+            exit 1
+          fi
+
+          git push origin "${RELEASE_SHA}:refs/heads/${RELEASE_VERSION}"
