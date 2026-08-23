@@ -1,5 +1,10 @@
 .git
 .env
 tmp
-client/web/node_modules
-client/web/dist
+client/portal/node_modules
+client/portal/dist
+
+# The marketing site deploys to Vercel and is not part of any Docker stage.
+# Excluding it keeps it out of the build context entirely, so marketing-only
+# changes don't invalidate the Go builder's `COPY . .` layer.
+client/marketing

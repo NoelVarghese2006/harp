@@ -111,7 +111,7 @@ func main() {
 			certificateBase64:     env.GetString("APPLE_WALLET_CERTIFICATE_BASE64", ""),
 			privateKeyBase64:      env.GetString("APPLE_WALLET_PRIVATE_KEY_BASE64", ""),
 			wwdrCertificateBase64: env.GetString("APPLE_WALLET_WWDR_CERTIFICATE_BASE64", ""),
-			iconPath:              env.GetString("APPLE_WALLET_ICON_PATH", "client/web/public/pwa-192x192.png"),
+			iconPath:              env.GetString("APPLE_WALLET_ICON_PATH", "client/portal/public/pwa-192x192.png"),
 		},
 	}
 

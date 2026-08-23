@@ -3422,7 +3422,7 @@ const docTemplate = `{
         },
         "/public/sponsors": {
             "get": {
-                "description": "Returns all sponsors, ordered by display order, with public logo URLs",
+                "description": "Returns all sponsors, ordered by display order. Logos are returned inline as base64 in logo_data, with the MIME type in logo_content_type — not as URLs.",
                 "produces": [
                     "application/json"
                 ],

@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: client/web
+        working-directory: client/portal
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +63,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: client/web/package-lock.json
+          cache-dependency-path: client/portal/package-lock.json
 
       - name: Install Dependencies
         run: npm ci
@@ -87,3 +87,37 @@ jobs:
           else
             echo "No test files found, skipping"
           fi
+
+  marketing-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client/marketing
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: client/marketing/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Format Check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      # `next build` is deliberately left to Vercel, which owns the deploy and
+      # holds HARP_PUBLIC_API_KEY. Server Components fetch at build time, so
+      # building here would either fail on the missing secret or need it copied
+      # into Actions. Type checking gives us the same signal without the key.
+      - name: Type Check
+        run: npm run typecheck
+
+      - name: Dependency Audit
+        run: npm audit --audit-level=high --omit=dev

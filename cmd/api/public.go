@@ -22,7 +22,7 @@ func (app *application) getPublicScheduleHandler(w http.ResponseWriter, r *http.
 // getPublicSponsorsHandler returns all sponsors (public, API key auth)
 //
 //	@Summary		Get sponsors (Public)
-//	@Description	Returns all sponsors, ordered by display order, with public logo URLs
+//	@Description	Returns all sponsors, ordered by display order. Logos are returned inline as base64 in logo_data, with the MIME type in logo_content_type — not as URLs.
 //	@Tags			public
 //	@Produce		json
 //	@Param			X-API-Key	header		string	true	"API Key"
