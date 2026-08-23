@@ -184,7 +184,7 @@ export function ResetHackathonCard() {
               Reset Options
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800 text-zinc-100">
+          <DialogContent className="sm:max-w-3xl lg:max-w-5xl max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800 text-zinc-100">
             <DialogHeader>
               <DialogTitle className="text-red-400 flex items-center gap-2">
                 <AlertTriangle className="size-5" />
@@ -197,7 +197,7 @@ export function ResetHackathonCard() {
             </DialogHeader>
 
             <div className="py-4 space-y-4">
-              <div className="space-y-3 border border-zinc-800 rounded-md p-4 bg-zinc-950/50 max-h-[45vh] overflow-y-auto">
+              <div className="space-y-3 border border-zinc-800 rounded-md p-4 bg-zinc-950/50">
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                   <span className="text-xs uppercase tracking-wide text-zinc-500">
                     Everything is selected by default
@@ -213,50 +213,63 @@ export function ResetHackathonCard() {
                   </button>
                 </div>
 
-                {RESET_ITEMS.map((item) => (
-                  <div key={item.id} className="flex items-start space-x-3">
-                    <Checkbox
-                      id={item.id}
-                      checked={options[item.id]}
-                      onCheckedChange={(c) =>
-                        setOptions((prev) => ({
-                          ...prev,
-                          [item.id]: !!c,
-                        }))
-                      }
-                      className="border-zinc-600 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label
-                        htmlFor={item.id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-zinc-100"
-                      >
-                        {item.label}
-                      </Label>
-                      <p className="text-xs text-zinc-500">{item.desc}</p>
+                {/* Two columns so every option is visible at once — a super
+                    admin picking what to wipe shouldn't have to scroll past
+                    options they can't see. */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {RESET_ITEMS.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex h-full items-start space-x-3 rounded-md border border-zinc-800/80 bg-zinc-900/40 p-3"
+                    >
+                      <Checkbox
+                        id={item.id}
+                        checked={options[item.id]}
+                        onCheckedChange={(c) =>
+                          setOptions((prev) => ({
+                            ...prev,
+                            [item.id]: !!c,
+                          }))
+                        }
+                        className="mt-0.5 border-zinc-600 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <Label
+                          htmlFor={item.id}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-zinc-100"
+                        >
+                          {item.label}
+                        </Label>
+                        <p className="text-xs leading-relaxed text-zinc-500">
+                          {item.desc}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
-              <p className="text-xs leading-relaxed text-zinc-500">
-                A full reset keeps user accounts and roles, contact and sender
-                details, the application form schema, review count, admin
-                permissions, meal-group names, and push-notification opt-ins.
-              </p>
+              <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
+                <p className="text-xs leading-relaxed text-zinc-500">
+                  A full reset keeps user accounts and roles, contact and sender
+                  details, the application form schema, review count, admin
+                  permissions, meal-group names, and push-notification opt-ins.
+                </p>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirm" className="text-zinc-100">
-                  Type <strong className="text-red-400">RESET HACKATHON</strong>{" "}
-                  to confirm
-                </Label>
-                <Input
-                  id="confirm"
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="RESET HACKATHON"
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-red-400/20 focus-visible:border-red-400"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="confirm" className="text-zinc-100">
+                    Type{" "}
+                    <strong className="text-red-400">RESET HACKATHON</strong> to
+                    confirm
+                  </Label>
+                  <Input
+                    id="confirm"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="RESET HACKATHON"
+                    className="bg-zinc-950 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-red-400/20 focus-visible:border-red-400"
+                  />
+                </div>
               </div>
             </div>
 

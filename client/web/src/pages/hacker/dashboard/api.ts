@@ -20,3 +20,13 @@ export async function fetchHackathonConfig(
     signal,
   );
 }
+
+export async function fetchApplicationsEnabled(
+  signal?: AbortSignal,
+): Promise<ApiResponse<{ enabled: boolean }>> {
+  return getRequest<{ enabled: boolean }>(
+    "/applications/enabled",
+    "applications status",
+    signal,
+  );
+}

@@ -11,7 +11,7 @@ import type { Application, NotificationFeedItem } from "@/types";
 import { fetchHackerPackURL } from "../hacker-pack/api";
 import { getNotificationFeed } from "../notifications/api";
 import type { HackathonConfig } from "./api";
-import { fetchHackathonConfig } from "./api";
+import { fetchApplicationsEnabled, fetchHackathonConfig } from "./api";
 
 interface ImportantDate {
   month: string;
@@ -111,6 +111,11 @@ export default function DashboardPage() {
   const [feed, setFeed] = useState<NotificationFeedItem[]>([]);
   const [hackerPackURL, setHackerPackURL] = useState("");
   const [config, setConfig] = useState<HackathonConfig | null>(null);
+  // null until the flag loads — the closed state only renders once we know
+  // applications really are closed, so the card never flashes the wrong copy.
+  const [applicationsEnabled, setApplicationsEnabled] = useState<
+    boolean | null
+  >(null);
 
   const hackathonName = config?.hackathon_name || "Hackathon";
   const contactEmail = config?.contact_email ?? "";
@@ -131,16 +136,18 @@ export default function DashboardPage() {
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {
-      const [appRes, feedRes, packRes, configRes] = await Promise.all([
-        getRequest<Application>(
-          "/applications/me",
-          "application",
-          controller.signal,
-        ),
-        getNotificationFeed(controller.signal),
-        fetchHackerPackURL(controller.signal),
-        fetchHackathonConfig(controller.signal),
-      ]);
+      const [appRes, feedRes, packRes, configRes, enabledRes] =
+        await Promise.all([
+          getRequest<Application>(
+            "/applications/me",
+            "application",
+            controller.signal,
+          ),
+          getNotificationFeed(controller.signal),
+          fetchHackerPackURL(controller.signal),
+          fetchHackathonConfig(controller.signal),
+          fetchApplicationsEnabled(controller.signal),
+        ]);
       if (controller.signal.aborted) return;
       if (appRes.status === 200 && appRes.data) {
         setApplication(appRes.data);
@@ -154,6 +161,9 @@ export default function DashboardPage() {
       if (configRes.status === 200 && configRes.data) {
         setConfig(configRes.data);
       }
+      if (enabledRes.status === 200 && enabledRes.data) {
+        setApplicationsEnabled(enabledRes.data.enabled);
+      }
     };
     load();
     return () => controller.abort();
@@ -161,8 +171,13 @@ export default function DashboardPage() {
 
   const dates = importantDates(config);
   const percent = completionPercent(application);
-  const status = dashboardStatus(application);
   const isDraft = !application || application.status === "draft";
+  // Closing applications only changes the card for hackers who haven't
+  // submitted yet — a submitted application keeps showing its review state.
+  const applicationsClosed = applicationsEnabled === false && isDraft;
+  const status = applicationsClosed
+    ? { label: "Applications closed", color: "bg-white/15" }
+    : dashboardStatus(application);
   // Once a decision exists the card stays deliberately silent — no subtext at
   // all, so nothing here can hint at the outcome.
   const statusSubtext = isDraft
@@ -178,25 +193,30 @@ export default function DashboardPage() {
           body: n.body,
         }))
       : [
-          application?.status === "draft"
+          applicationsClosed
             ? {
-                title: "Application progress saved",
-                body: "You can pick up where you left off",
+                title: "Applications closed",
+                body: "The portal is not accepting submissions right now",
               }
-            : application?.status === "submitted"
+            : application?.status === "draft"
               ? {
-                  title: "Application under review",
-                  body: "We'll email you when decisions are out",
+                  title: "Application progress saved",
+                  body: "You can pick up where you left off",
                 }
-              : application
+              : application?.status === "submitted"
                 ? {
-                    title: "Decisions are out",
-                    body: "View your status to see your decision",
+                    title: "Application under review",
+                    body: "We'll email you when decisions are out",
                   }
-                : {
-                    title: "Start your application",
-                    body: `Applications for ${hackathonName} are open`,
-                  },
+                : application
+                  ? {
+                      title: "Decisions are out",
+                      body: "View your status to see your decision",
+                    }
+                  : {
+                      title: "Start your application",
+                      body: `Applications for ${hackathonName} are open`,
+                    },
         ];
 
   return (
@@ -212,26 +232,51 @@ export default function DashboardPage() {
         <h1 className="mt-3 text-xl font-light tracking-tight">
           {hackathonName}
         </h1>
-        {statusSubtext && (
+        {applicationsClosed ? (
           <p className="mt-1 text-sm font-light text-white/70">
-            {statusSubtext}
+            The application portal is not currently accepting submissions.
+            Please check back later.
+            {application?.status === "draft" &&
+              " Your draft has been saved and will be here when applications reopen."}
+            {contactEmail && (
+              <>
+                {" "}
+                If you believe this is a mistake, reach out to{" "}
+                <a
+                  href={`mailto:${contactEmail}`}
+                  onClick={handleCopyEmail}
+                  className="text-white underline underline-offset-2"
+                >
+                  {contactEmail}
+                </a>
+                .
+              </>
+            )}
           </p>
+        ) : (
+          <>
+            {statusSubtext && (
+              <p className="mt-1 text-sm font-light text-white/70">
+                {statusSubtext}
+              </p>
+            )}
+            {isDraft && (
+              <div className="mt-3 h-1 w-full rounded-full bg-white/20">
+                <div
+                  className="h-1 rounded-full bg-white transition-all"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            )}
+            <Link
+              to={isDraft ? "/app/apply" : "/app/status"}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2 text-sm font-medium text-black active:scale-[0.98]"
+            >
+              {isDraft ? "Continue" : "View status"}
+              <ChevronRight className="size-4" strokeWidth={1.75} />
+            </Link>
+          </>
         )}
-        {isDraft && (
-          <div className="mt-3 h-1 w-full rounded-full bg-white/20">
-            <div
-              className="h-1 rounded-full bg-white transition-all"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-        )}
-        <Link
-          to={isDraft ? "/app/apply" : "/app/status"}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2 text-sm font-medium text-black active:scale-[0.98]"
-        >
-          {isDraft ? "Continue" : "View status"}
-          <ChevronRight className="size-4" strokeWidth={1.75} />
-        </Link>
       </div>
 
       {/* Important dates */}
