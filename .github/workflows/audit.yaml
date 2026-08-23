@@ -113,9 +113,10 @@ jobs:
         run: npm run lint
 
       # `next build` is deliberately left to Vercel, which owns the deploy and
-      # holds HARP_PUBLIC_API_KEY. Server Components fetch at build time, so
-      # building here would either fail on the missing secret or need it copied
-      # into Actions. Type checking gives us the same signal without the key.
+      # holds HARP_PUBLIC_API_KEY. Type checking gives the same signal without
+      # the key — the script runs `next typegen` first, because types like
+      # LayoutProps are generated into .next/types and don't exist in a fresh
+      # checkout.
       - name: Type Check
         run: npm run typecheck
 

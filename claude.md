@@ -50,7 +50,7 @@ Note: `air` runs `task gen-docs` as a pre-command on every rebuild, so `swag` CL
 | `npm run dev`          | Start Next dev server (port 3001)      |
 | `npm run build`        | Production build (Vercel runs this)    |
 | `npm run lint`         | Run ESLint                             |
-| `npm run typecheck`    | `tsc --noEmit` (runs in CI)            |
+| `npm run typecheck`    | `next typegen` + `tsc --noEmit` (CI)   |
 | `npm run format`       | Auto-format with Prettier              |
 | `npm run format:check` | Check formatting (runs in CI)          |
 
