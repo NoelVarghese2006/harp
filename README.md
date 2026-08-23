@@ -68,6 +68,28 @@ On a fresh database, application submissions and the points system are disabled
 until a super admin enables them. Admin schedule, sponsor, and FAQ editing
 permissions remain enabled by default.
 
+## Annual reset and resume storage
+
+The Super Admin full reset is a destructive transition between hackathon
+cycles. Back up or export anything that must be retained before running it. It
+deletes applications and reviews, the walk-in queue, scans and scan stats,
+custom scan types, schedule and notification history, sponsors, FAQs, and the
+old event identity/dates. Applications and the points UI are left disabled
+until the next event is configured.
+
+User accounts and roles, push-notification opt-ins, contact/sender settings,
+the application schema, review count, admin permissions, and meal-group names
+carry forward intentionally.
+
+New resumes use the GCS object prefix
+`hackathons/<sanitized-hackathon-name>/resumes/<user-id>/<random-id>.pdf`.
+Include the year in each event's configured name to get a distinct, readable
+prefix per cycle. GCS prefixes are virtual folders inside `GCS_BUCKET_NAME`,
+not separate buckets. Resetting applications queues cleanup of both this layout
+and the legacy `resumes/` layout, including orphaned uploads. The API service
+account therefore needs permission to list and delete objects in addition to
+creating and reading them.
+
 ## Apple Wallet passes
 
 The scan page can offer an Apple Wallet pass when it is opened as an installed

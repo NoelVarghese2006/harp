@@ -166,6 +166,10 @@ func (app *application) updateApplicationHandler(w http.ResponseWriter, r *http.
 		application.Responses = req.Responses
 	}
 	if req.ResumePath != nil {
+		if !validResumeObjectPath(*req.ResumePath, user.ID) {
+			app.badRequestResponse(w, r, errors.New("invalid resume path"))
+			return
+		}
 		application.ResumePath = req.ResumePath
 	}
 

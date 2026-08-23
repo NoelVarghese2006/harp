@@ -57,6 +57,15 @@ func (s *HackathonStore) Reset(ctx context.Context, opts ResetOptions) ([]string
 		if _, err := tx.ExecContext(ctx, "TRUNCATE TABLE applications, walk_ins CASCADE"); err != nil {
 			return nil, err
 		}
+
+		// Do not leave the public form open against an empty application table.
+		// A full reset also closes it through resetHackathonConfig below, but the
+		// applications option is independently callable.
+		if !opts.Config {
+			if err := closeApplications(ctx, tx); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if opts.Scans {

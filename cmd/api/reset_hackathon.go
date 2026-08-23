@@ -63,7 +63,7 @@ type ResetHackathonResponse struct {
 // resetHackathonHandler resets hackathon data based on options
 //
 //	@Summary		Reset hackathon data (Super Admin)
-//	@Description	Resets selected hackathon data (applications and walk-in queue, scans, scan types, schedule, notifications, sponsors, FAQs, settings, per-cycle config). Resetting config also closes applications. Database work is performed in a single transaction; resume files are removed from object storage in the background.
+//	@Description	Resets selected hackathon data (applications and walk-in queue, scans, scan types, schedule, notifications, sponsors, FAQs, settings, per-cycle config). Resetting applications or config also closes applications. Database work is performed in a single transaction; resume files are removed from object storage in the background.
 //	@Tags			superadmin
 //	@Accept			json
 //	@Produce		json
@@ -100,7 +100,7 @@ func (app *application) resetHackathonHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	resumesQueued := 0
-	if len(resumePaths) > 0 {
+	if opts.Applications {
 		if app.gcsClient == nil {
 			app.logger.Warnw("resume files left in object storage: no GCS client configured", "count", len(resumePaths))
 		} else {
@@ -134,13 +134,38 @@ func (app *application) deleteResumeObjects(paths []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), resumeDeleteTimeout)
 	defer cancel()
 
+	// Start with database-linked paths, then list both storage layouts to catch
+	// orphaned uploads and leftovers from an interrupted earlier cleanup.
+	// De-duplicate before issuing deletes. Objects elsewhere under hackathons/
+	// are deliberately ignored so future event assets can share the namespace.
+	uniquePaths := make(map[string]struct{}, len(paths))
+	for _, path := range paths {
+		if _, ok := resumeStoragePrefixFromPath(path); !ok {
+			app.logger.Warnw("skipping unrecognized resume object path", "path", path)
+			continue
+		}
+		uniquePaths[path] = struct{}{}
+	}
+	for _, pathPrefix := range []string{legacyResumeStoragePrefix, hackathonStorageRootPrefix} {
+		prefixPaths, err := app.gcsClient.ListObjects(ctx, pathPrefix)
+		if err != nil {
+			app.logger.Errorw("failed to list resume objects for cleanup", "prefix", pathPrefix, "error", err)
+		} else {
+			for _, path := range prefixPaths {
+				if _, ok := resumeStoragePrefixFromPath(path); ok {
+					uniquePaths[path] = struct{}{}
+				}
+			}
+		}
+	}
+
 	var (
 		wg     sync.WaitGroup
 		failed atomic.Int64
 		sem    = make(chan struct{}, resumeDeleteConcurrency)
 	)
 
-	for _, path := range paths {
+	for path := range uniquePaths {
 		wg.Add(1)
 		sem <- struct{}{}
 
@@ -158,8 +183,8 @@ func (app *application) deleteResumeObjects(paths []string) {
 	wg.Wait()
 
 	app.logger.Infow("resume cleanup finished",
-		"total", len(paths),
-		"deleted", int64(len(paths))-failed.Load(),
+		"total", len(uniquePaths),
+		"deleted", int64(len(uniquePaths))-failed.Load(),
 		"failed", failed.Load(),
 	)
 }

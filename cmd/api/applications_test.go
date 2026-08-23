@@ -180,6 +180,26 @@ func TestUpdateApplication(t *testing.T) {
 		mockSettings.AssertExpectations(t)
 	})
 
+	t.Run("should reject a resume path outside the authenticated user's namespace", func(t *testing.T) {
+		user := newTestUser()
+		existing := &store.Application{ID: "app-1", UserID: user.ID, Status: store.StatusDraft}
+
+		mockApps.On("GetByUserID", user.ID).Return(existing, nil).Once()
+		mockSettings.On("GetApplicationSchema").Return([]store.ApplicationSchemaField{}, nil).Once()
+
+		body := `{"resume_path":"hackathons/hackutd-2027/resumes/another-user/0123456789abcdef0123456789abcdef.pdf"}`
+		req, err := http.NewRequest(http.MethodPatch, "/", strings.NewReader(body))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req = setUserContext(req, user)
+
+		rr := executeRequest(req, http.HandlerFunc(app.updateApplicationHandler))
+		checkResponseCode(t, http.StatusBadRequest, rr.Code)
+
+		mockApps.AssertExpectations(t)
+		mockSettings.AssertExpectations(t)
+	})
+
 	t.Run("should return 409 when application is already submitted", func(t *testing.T) {
 		user := newTestUser()
 		existing := &store.Application{ID: "app-1", UserID: user.ID, Status: store.StatusSubmitted}

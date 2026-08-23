@@ -38,12 +38,27 @@ func TestResetHackathon(t *testing.T) {
 				Notifications: true, Settings: true, Sponsors: true, FAQs: true,
 				Config: true,
 			}).
-			Return([]string{"resume1.pdf", "resume2.pdf"}, nil)
+			Return([]string{"resumes/user-1/resume1.pdf", "resumes/user-2/resume2.pdf"}, nil)
 
-		// Resume cleanup runs in the background; wait for both deletes.
+		// Resume cleanup runs in the background; wait for all deletes.
 		var deletions sync.WaitGroup
-		deletions.Add(2)
-		for _, path := range []string{"resume1.pdf", "resume2.pdf"} {
+		mockGCS.On("ListObjects", mock.Anything, hackathonStorageRootPrefix).
+			Return([]string{
+				"hackathons/hackutd-2026/resumes/orphan.pdf",
+				"hackathons/hackutd-2026/assets/logo.png",
+			}, nil).
+			Once()
+		mockGCS.On("ListObjects", mock.Anything, legacyResumeStoragePrefix).
+			Return([]string{"resumes/legacy-orphan.pdf"}, nil).
+			Once()
+
+		deletions.Add(4)
+		for _, path := range []string{
+			"resumes/user-1/resume1.pdf",
+			"resumes/user-2/resume2.pdf",
+			"hackathons/hackutd-2026/resumes/orphan.pdf",
+			"resumes/legacy-orphan.pdf",
+		} {
 			mockGCS.On("DeleteObject", mock.Anything, path).
 				Return(nil).
 				Once().
@@ -93,6 +108,41 @@ func TestResetHackathon(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 0, respBody.Data.ResumesDeleted)
 
+		app.store.Hackathon.(*store.MockHackathonStore).AssertExpectations(t)
+	})
+
+	t.Run("should clean orphaned objects from the current hackathon prefix", func(t *testing.T) {
+		app := newTestApplication(t)
+		mockGCS := app.gcsClient.(*gcs.MockClient)
+		orphanPath := "hackathons/hackutd-2026/resumes/user-1/orphan.pdf"
+
+		app.store.Hackathon.(*store.MockHackathonStore).
+			On("Reset", store.ResetOptions{Applications: true}).
+			Return([]string(nil), nil).
+			Once()
+		mockGCS.On("ListObjects", mock.Anything, hackathonStorageRootPrefix).
+			Return([]string{orphanPath, "hackathons/hackutd-2026/assets/logo.png"}, nil).
+			Once()
+		mockGCS.On("ListObjects", mock.Anything, legacyResumeStoragePrefix).
+			Return([]string(nil), nil).
+			Once()
+
+		var deletion sync.WaitGroup
+		deletion.Add(1)
+		mockGCS.On("DeleteObject", mock.Anything, orphanPath).
+			Return(nil).
+			Once().
+			Run(func(mock.Arguments) { deletion.Done() })
+
+		reqBody, _ := json.Marshal(ResetHackathonPayload{ResetApplications: true})
+		req, _ := http.NewRequest(http.MethodPost, "/v1/superadmin/reset-hackathon", bytes.NewBuffer(reqBody))
+		req = setUserContext(req, newSuperAdminUser())
+
+		rr := executeRequest(req, http.HandlerFunc(app.resetHackathonHandler))
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		deletion.Wait()
+		mockGCS.AssertExpectations(t)
 		app.store.Hackathon.(*store.MockHackathonStore).AssertExpectations(t)
 	})
 

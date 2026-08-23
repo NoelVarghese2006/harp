@@ -34,7 +34,7 @@ const RESET_ITEMS: {
   {
     id: "reset_applications",
     label: "Applications",
-    desc: "Deletes all hacker applications, reviews, walk-in queue entries, and resume files.",
+    desc: "Closes applications and deletes all hacker applications, reviews, walk-in queue entries, and resume files.",
   },
   {
     id: "reset_scans",
@@ -69,7 +69,7 @@ const RESET_ITEMS: {
   {
     id: "reset_config",
     label: "Hackathon Config",
-    desc: "Clears the hackathon dates, points name, and hacker pack link, and closes applications so nobody can apply to a half-configured hackathon.",
+    desc: "Clears the hackathon name, dates, application deadline, points name, and hacker pack link. It also closes applications and disables points until the next event is configured.",
   },
   {
     id: "reset_settings",
@@ -142,7 +142,7 @@ export function ResetHackathonCard() {
       const resumes = res.data?.resumes_deleted ?? 0;
       const notes = [
         resumes > 0
-          ? `removing ${resumes} resume file${resumes === 1 ? "" : "s"} from storage`
+          ? `queued ${resumes} resume file${resumes === 1 ? "" : "s"} for storage cleanup`
           : null,
         // Closing applications is a side effect of the config reset that a
         // super admin has to know about — it silently takes the public form down.
@@ -238,6 +238,12 @@ export function ResetHackathonCard() {
                   </div>
                 ))}
               </div>
+
+              <p className="text-xs leading-relaxed text-zinc-500">
+                A full reset keeps user accounts and roles, contact and sender
+                details, the application form schema, review count, admin
+                permissions, meal-group names, and push-notification opt-ins.
+              </p>
 
               <div className="space-y-2">
                 <Label htmlFor="confirm" className="text-zinc-100">

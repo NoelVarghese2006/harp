@@ -290,20 +290,36 @@ func resetScanTypes(ctx context.Context, tx *sql.Tx) error {
 // resetHackathonConfig clears the per-cycle hackathon configuration within an
 // existing transaction.
 func resetHackathonConfig(ctx context.Context, tx *sql.Tx) error {
-	// Deleting these rows returns each getter to its documented "not
-	// configured" default — empty date range, "Points", empty hacker pack URL —
-	// so the defaults live in exactly one place.
+	// Clear only per-cycle identity and content. Organization-level settings
+	// such as contact/sender addresses, application schema, review count, admin
+	// permissions, and meal-group names intentionally carry forward.
 	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM settings WHERE key IN ($1, $2, $3)`,
-		SettingsKeyHackathonDateRange, SettingsKeyPointsName, SettingsKeyHackerPackURL,
+		`DELETE FROM settings WHERE key IN ($1, $2, $3, $4, $5)`,
+		SettingsKeyHackathonName,
+		SettingsKeyHackathonDateRange,
+		SettingsKeyApplicationDueDate,
+		SettingsKeyPointsName,
+		SettingsKeyHackerPackURL,
 	); err != nil {
 		return err
 	}
 
-	// applications_enabled is written explicitly rather than deleted:
-	// GetApplicationsEnabled treats a missing row as enabled, so deleting it
-	// would throw the public application form open on a freshly wiped
-	// hackathon. Closed is the safe resting state — reopen it deliberately.
+	if err := closeApplications(ctx, tx); err != nil {
+		return err
+	}
+
+	// A fresh cycle has no point-bearing scan types yet, so keep the hacker
+	// points UI hidden until an organizer deliberately configures it.
+	query := `
+		INSERT INTO settings (key, value)
+		VALUES ($1, 'false'::jsonb)
+		ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`
+	_, err := tx.ExecContext(ctx, query, SettingsKeyPointsEnabled)
+	return err
+}
+
+// closeApplications puts the public form in its safe between-events state.
+func closeApplications(ctx context.Context, tx *sql.Tx) error {
 	query := `
 		INSERT INTO settings (key, value)
 		VALUES ($1, 'false'::jsonb)

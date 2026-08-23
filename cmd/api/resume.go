@@ -6,12 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"unicode"
 
 	"github.com/go-chi/chi"
 	"github.com/hackutd/portal/internal/store"
 )
 
 const randomResumeObjectIDBytes = 16
+
+const (
+	maxHackathonStorageSlugRunes = 80
+	hackathonStorageRootPrefix   = "hackathons/"
+	legacyResumeStoragePrefix    = "resumes/"
+)
 
 type ResumeUploadURLResponse struct {
 	UploadURL  string `json:"upload_url"`
@@ -70,7 +78,17 @@ func (app *application) generateResumeUploadURLHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	objectPath := fmt.Sprintf("resumes/%s/%s.pdf", user.ID, randomID)
+	hackathonName, err := app.store.Settings.GetHackathonName(r.Context())
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	// GCS has a flat object namespace; slash-delimited names are prefixes that
+	// make each event's files easy to browse, export, and apply lifecycle rules
+	// to. The database stores the complete path, so legacy resumes under
+	// resumes/... remain readable and resettable.
+	objectPath := fmt.Sprintf("%s%s/%s.pdf", resumeStoragePrefix(hackathonName), user.ID, randomID)
 
 	uploadURL, err := app.gcsClient.GenerateUploadURL(r.Context(), objectPath)
 	if err != nil {
@@ -84,6 +102,102 @@ func (app *application) generateResumeUploadURLHandler(w http.ResponseWriter, r 
 	}); err != nil {
 		app.internalServerError(w, r, err)
 	}
+}
+
+func resumeStoragePrefix(hackathonName string) string {
+	return fmt.Sprintf("hackathons/%s/resumes/", hackathonStorageSlug(hackathonName))
+}
+
+// resumeStoragePrefixFromPath recognizes both current namespaced object paths
+// and the legacy top-level resumes/ layout.
+func resumeStoragePrefixFromPath(objectPath string) (string, bool) {
+	if strings.HasPrefix(objectPath, legacyResumeStoragePrefix) {
+		return legacyResumeStoragePrefix, true
+	}
+	if !strings.HasPrefix(objectPath, hackathonStorageRootPrefix) {
+		return "", false
+	}
+
+	relativePath := strings.TrimPrefix(objectPath, hackathonStorageRootPrefix)
+	resumeSegment := strings.Index(relativePath, "/resumes/")
+	if resumeSegment <= 0 {
+		return "", false
+	}
+
+	return hackathonStorageRootPrefix + relativePath[:resumeSegment] + "/resumes/", true
+}
+
+// validResumeObjectPath prevents clients from attaching arbitrary bucket
+// objects to an application. A resume path must belong to the authenticated
+// user and use the random 128-bit PDF name issued by this API.
+func validResumeObjectPath(objectPath, userID string) bool {
+	var fileName string
+
+	legacyUserPrefix := legacyResumeStoragePrefix + userID + "/"
+	if strings.HasPrefix(objectPath, legacyUserPrefix) {
+		fileName = strings.TrimPrefix(objectPath, legacyUserPrefix)
+	} else {
+		parts := strings.Split(objectPath, "/")
+		if len(parts) != 5 ||
+			parts[0] != strings.TrimSuffix(hackathonStorageRootPrefix, "/") ||
+			parts[1] == "" ||
+			parts[2] != "resumes" ||
+			parts[3] != userID {
+			return false
+		}
+		fileName = parts[4]
+	}
+
+	if !strings.HasSuffix(fileName, ".pdf") {
+		return false
+	}
+	objectID := strings.TrimSuffix(fileName, ".pdf")
+	if len(objectID) != randomResumeObjectIDBytes*2 {
+		return false
+	}
+	_, err := hex.DecodeString(objectID)
+	return err == nil
+}
+
+// hackathonStorageSlug turns the organizer-controlled display name into one
+// safe object-prefix segment. A year in the configured name (for example,
+// "HackUTD 2027") naturally creates a new per-cycle prefix.
+func hackathonStorageSlug(name string) string {
+	var (
+		builder      strings.Builder
+		writtenRunes int
+		separatorDue bool
+	)
+
+	for _, r := range strings.TrimSpace(name) {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) {
+			runesNeeded := 1
+			if separatorDue && writtenRunes > 0 {
+				runesNeeded++
+			}
+			if writtenRunes+runesNeeded > maxHackathonStorageSlugRunes {
+				break
+			}
+
+			if separatorDue && writtenRunes > 0 {
+				builder.WriteByte('-')
+				writtenRunes++
+			}
+			separatorDue = false
+			builder.WriteRune(unicode.ToLower(r))
+			writtenRunes++
+			continue
+		}
+
+		if writtenRunes > 0 {
+			separatorDue = true
+		}
+	}
+
+	if builder.Len() == 0 {
+		return "unconfigured-hackathon"
+	}
+	return builder.String()
 }
 
 // deleteResumeHandler removes the resume path from the draft application and best-effort deletes from GCS.
