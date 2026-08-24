@@ -202,8 +202,7 @@ export default function Login() {
           )}
 
           <p className="text-center text-xs font-light text-[#B8B8B8]">
-            By continuing, you agree to HackUTD's Terms of Service and Privacy
-            Policy
+            By continuing, you agree to our Terms of Service and Privacy Policy
           </p>
         </div>
       </div>

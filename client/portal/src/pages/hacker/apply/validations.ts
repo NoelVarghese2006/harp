@@ -81,7 +81,7 @@ export const HEARD_ABOUT_OPTIONS = [
   { value: "university", label: "University/Professor" },
   { value: "mlh", label: "MLH" },
   { value: "search", label: "Google/Search Engine" },
-  { value: "previous_event", label: "Previous HackUTD Event" },
+  { value: "previous_event", label: "Previous event" },
   { value: "other", label: "Other" },
 ];
 

@@ -1,11 +1,13 @@
 /**
  * Preset university options for the `university` application field.
  *
- * Curated toward Texas schools (HackUTD's primary audience) plus major
- * national universities. This is intentionally not exhaustive — hackers whose
- * school isn't listed pick "Other" and type it in. To broaden coverage, this
- * array can be swapped for the full MLH school list without any other change.
- * See `shared/lib/field-presets`.
+ * Curated toward Texas schools plus major national universities. That regional
+ * bias is a default, not a design decision: if you are running this somewhere
+ * else, reorder or replace this list for your own applicants.
+ *
+ * Intentionally not exhaustive — hackers whose school isn't listed pick "Other"
+ * and type it in. To broaden coverage, this array can be swapped for the full
+ * MLH school list without any other change. See `shared/lib/field-presets`.
  */
 export const UNIVERSITIES: readonly string[] = [
   // Texas
