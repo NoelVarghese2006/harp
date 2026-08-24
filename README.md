@@ -1,113 +1,142 @@
-# HARP - Hacker Applications & Review Platform
+<div align="center">
+  <img src="client/portal/public/pwa-512x512.png" alt="Harp logo" width="160" />
+  <h1>Harp</h1>
+  <h3>Hacker Applications &amp; Review Platform</h3>
+  <p><strong>A reusable foundation for running a hackathon</strong></p>
+</div>
 
-> **Work in Progress** - This project is under active development.
+> Harp is under active development.
 
-Hackathon management system with Go backend and React frontend.
+## What is Harp?
 
-## Quick Start
+Running a hackathon often means piecing together forms, spreadsheets, email tools, schedules, and check-in systems. Harp brings that work into one place. It helps organizers manage the event from the moment applications open through the final day of the hackathon.
 
-### Prerequisites
+The Go backend sits at the center of Harp. It handles the work behind applications, reviews, acceptances and rejections, schedules, walk-in queues, user access, event settings, and live event data. Two web experiences are built around it:
 
-- <a href="https://docs.docker.com/get-docker/" target="_blank">Docker</a>
+- A **React portal** gives hackers, reviewers, organizers, and super admins the tools they need.
+- A **Next.js marketing site** introduces the event to the public and pulls changing schedules, FAQs, and sponsor information from the backend.
 
-### Setup
+The marketing site is deliberately separate from the portal. Every iteration of a hackathon should redesign it to match that year's theme and identity. The underlying event data and organizer workflows can stay in Harp, so a fresh public experience does not mean rebuilding the whole platform.
 
-There are two ways to run the dev environment, depending on how you want to handle SuperTokens auth:
+## Application walkthrough
 
-#### Option 1: Cloud SuperTokens (default)
+<!--
+Add the product walkthrough GIF to docs/harp-demo.gif, then replace the line
+below with:
 
-Uses a managed SuperTokens instance. Requires `SUPERTOKENS_CONNECTION_URI` and `SUPERTOKENS_API_KEY` in your `.env` file.
+<p align="center">
+  <img src="docs/harp-demo.gif" alt="Harp application walkthrough" width="900" />
+</p>
+-->
 
-```bash
-docker compose -f docker-compose.dev.yml up --build
+_Demo GIF coming soon._
+
+## One platform for the full event lifecycle
+
+```mermaid
+flowchart LR
+    configure["Configure the event"] --> apply["Collect applications"]
+    apply --> review["Assign and review applications"]
+    review --> decide["Accept, reject, and notify"]
+    decide --> operate["Run check-in and event operations"]
+    operate --> reset["Reset for the next hackathon"]
+
+    configure -.-> publish["Publish schedules, FAQs, and sponsors"]
+    publish -.-> operate
 ```
 
-| Service      | URL                                   |
-| ------------ | ------------------------------------- |
-| Frontend     | `http://localhost:3000`               |
-| Backend API  | `http://localhost:8080/v1`            |
-| PostgreSQL   | `localhost:5432`                      |
-| Swagger Docs | `http://localhost:8080/v1/swagger/`   |
-| Debug Vars   | `http://localhost:8080/v1/debug/vars` |
+Harp is useful for more than registration. Organizers can set up a new event, work through admissions, run the hackathon in real time, and prepare the platform for the next year.
 
-#### Option 2: Local SuperTokens
+## What the platform offers
 
-Runs a self-hosted SuperTokens instance in Docker. No API key needed.
+### Hacker experience
 
-```bash
-docker compose -f docker-compose.local-st.yml up --build
+- Account creation and secure sign-in
+- Configurable, multi-step applications with resume uploads
+- Application submission and status tracking
+- A personalized event dashboard, schedule, FAQ, and hacker pack
+- A personal QR code for fast check-in and activity scans
+- Notification feed and opt-in web push notifications
+- Points and participation tracking
+- Optional Apple Wallet event pass
+- Installable portal experience through PWA support
+
+### Applications and admissions
+
+- Custom application sections, fields, and validation
+- Searchable applicant records and application statistics
+- Reviewer assignment and configurable reviews per application
+- Structured voting, reviewer notes, and completed-review history
+- Acceptance, rejection, and waitlist status management
+- Bulk decision-email delivery and delivery progress
+- Walk-in queue management and promotion into the event
+
+### Day-of event operations
+
+- Schedule creation and live updates
+- QR scanning for check-in, meals, workshops, and custom activities
+- Scan statistics and configurable scan types
+- Meal-group configuration and attendance visibility
+- Scheduled announcements generated manually or from schedule items
+- Hacker-facing schedules, notifications, FAQs, and event resources
+
+### Content and public presence
+
+- Sponsor management, including logos, tiers, and links
+- Frequently asked question management
+- A public schedule managed from the organizer portal
+- API-backed content for the marketing site, keeping fast-changing information in one place
+- A marketing site that can and should be redesigned for every iteration of the hackathon
+
+### Administration and reuse
+
+- Hacker, admin, and super-admin roles with protected workflows
+- User search and role management
+- Configurable event dates, name, contact details, application deadline, and feature availability
+- Granular organizer permissions for schedules, sponsors, and FAQs
+- Annual reset workflow that preserves reusable configuration while clearing event-specific activity
+
+## High-level architecture
+
+```mermaid
+flowchart LR
+    hackers["Hackers"] --> portal
+    organizers["Reviewers and organizers"] --> portal
+    visitors["Public visitors"] --> marketing
+
+    subgraph harp["Harp platform"]
+        portal["React portal / PWA<br/>Hacker and organizer workflows"]
+        marketing["Next.js marketing site<br/>Public event experience"]
+        api["Go API<br/>Business rules and system of record"]
+
+        portal -->|"Authenticated /v1 API"| api
+        marketing -->|"API-key requests to /v1/public"| api
+    end
+
+    api --> database[("PostgreSQL")]
+    api --> auth["SuperTokens<br/>Authentication"]
+    api --> storage["Google Cloud Storage<br/>Resumes and assets"]
+    api --> delivery["Email, Web Push,<br/>and Apple Wallet"]
 ```
 
-| Service      | URL                                   |
-| ------------ | ------------------------------------- |
-| Frontend     | `http://localhost:3000`               |
-| Backend API  | `http://localhost:8080/v1`            |
-| SuperTokens  | `localhost:3567`                      |
-| PostgreSQL   | `localhost:5432`                      |
-| Swagger Docs | `http://localhost:8080/v1/swagger/`   |
-| Debug Vars   | `http://localhost:8080/v1/debug/vars` |
+The Go backend is the shared source of truth. The portal uses authenticated, role-aware endpoints for hacker and organizer work. The marketing site uses a smaller public-content API for schedules, FAQs, and sponsor data. Organizers can update that information once, and every site that consumes the API can show the latest version.
 
-The backend runs database migrations automatically on startup. Both the frontend and backend support hot reload via mounted volumes.
+## The three core services
 
-## Tech Stack
+| Service                    | Location              | Responsibility                                                                                                           |
+| -------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Go backend**             | `cmd/api`, `internal` | Owns business logic, authorization, applications, reviews, decisions, event operations, public content, and persistence. |
+| **React portal**           | `client/portal`       | Provides the authenticated hacker, admin, and super-admin experience as a Vite-powered PWA.                              |
+| **Next.js marketing site** | `client/marketing`    | Provides the public event website and renders frequently updated content from the Go public API.                         |
 
-**Backend:** Go, Chi, PostgreSQL, SuperTokens, SendGrid
+## Technology at a glance
 
-**Frontend:** React 19, Vite, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend:** Go, Chi, PostgreSQL
+- **Portal:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Marketing:** Next.js, React, TypeScript, Tailwind CSS
+- **Platform services:** SuperTokens, Google Cloud Storage, email delivery, Web Push, Apple Wallet
+- **Delivery:** Docker-based local and production workflows
 
-**Deployment:** GCP (GCR, GCS), multi-stage Docker (scratch), Neon DB
+## Design principle
 
-## Production database migrations
-
-The production image starts the API but does not run database migrations. Run
-`task migrate-up` from a trusted migration job or workstation with `DB_ADDR`
-configured before the first API deployment and before deploying releases that
-include new migrations.
-
-On a fresh database, application submissions and the points system are disabled
-until a super admin enables them. Admin schedule, sponsor, and FAQ editing
-permissions remain enabled by default.
-
-## Annual reset and resume storage
-
-The Super Admin full reset is a destructive transition between hackathon
-cycles. Back up or export anything that must be retained before running it. It
-deletes applications and reviews, the walk-in queue, scans and scan stats,
-custom scan types, schedule and notification history, sponsors, FAQs, and the
-old event identity/dates. Applications and the points UI are left disabled
-until the next event is configured.
-
-User accounts and roles, push-notification opt-ins, contact/sender settings,
-the application schema, review count, admin permissions, and meal-group names
-carry forward intentionally.
-
-New resumes use the GCS object prefix
-`hackathons/<sanitized-hackathon-name>/resumes/<user-id>/<random-id>.pdf`.
-Include the year in each event's configured name to get a distinct, readable
-prefix per cycle. GCS prefixes are virtual folders inside `GCS_BUCKET_NAME`,
-not separate buckets. Resetting applications queues cleanup of both this layout
-and the legacy `resumes/` layout, including orphaned uploads. The API service
-account therefore needs permission to list and delete objects in addition to
-creating and reading them.
-
-## Apple Wallet passes
-
-The scan page can offer an Apple Wallet pass when it is opened as an installed
-iPhone PWA. Pass generation is disabled by default. To enable it, create a Pass
-Type ID and signing certificate in the Apple Developer portal, then configure
-the backend with:
-
-```dotenv
-APPLE_WALLET_ENABLED=true
-APPLE_WALLET_PASS_TYPE_IDENTIFIER=pass.com.example.hackutd
-APPLE_WALLET_TEAM_IDENTIFIER=YOURTEAMID
-APPLE_WALLET_CERTIFICATE_BASE64=<base64-encoded pass certificate in PEM or DER format>
-APPLE_WALLET_PRIVATE_KEY_BASE64=<base64-encoded unencrypted PKCS#8, PKCS#1, or EC private key>
-APPLE_WALLET_WWDR_CERTIFICATE_BASE64=<base64-encoded Apple WWDR certificate in PEM or DER format>
-```
-
-Optional values are `APPLE_WALLET_ORGANIZATION_NAME`,
-`APPLE_WALLET_DESCRIPTION`, and `APPLE_WALLET_ICON_PATH`. The default icon is
-the PWA icon. Keep the certificate and private key in your deployment's secret
-manager; never commit them to the repository. Apple documents the certificate
-and bundle requirements in [Building a Pass](https://developer.apple.com/documentation/walletpasses/building-a-pass).
+Hackathon software should make the event easier to run. Harp keeps event content, settings, applicants, schedules, and live operations in one backend. The participant portal can stay familiar from year to year, while the marketing site should be redesigned for each new iteration of the hackathon. That gives every event its own personality without forcing the team to rebuild the systems behind it.
