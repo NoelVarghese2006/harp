@@ -87,38 +87,3 @@ jobs:
           else
             echo "No test files found, skipping"
           fi
-
-  marketing-audit:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client/marketing
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: client/marketing/package-lock.json
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Format Check
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      # `next build` is deliberately left to Vercel, which owns the deploy and
-      # holds HARP_PUBLIC_API_KEY. Type checking gives the same signal without
-      # the key — the script runs `next typegen` first, because types like
-      # LayoutProps are generated into .next/types and don't exist in a fresh
-      # checkout.
-      - name: Type Check
-        run: npm run typecheck
-
-      - name: Dependency Audit
-        run: npm audit --audit-level=high --omit=dev

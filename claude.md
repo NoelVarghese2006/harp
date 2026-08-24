@@ -4,14 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**HARP** (Hacker Applications & Review Platform) — a hackathon management system for HackUTD. Go backend + React frontend. Supports hacker applications, admin review/grading workflows, and super-admin configuration.
+**HARP** (Hacker Applications & Review Platform) — a hackathon management system built so any school can run it. Go backend + React frontend. Supports hacker applications, admin review/grading workflows, and super-admin configuration.
 
-Two separate frontends live under `client/`:
+One frontend lives under `client/`:
 
 - `client/portal/` — the year-round application/review SPA (Vite + React). Built into the Go container and served from `/`.
-- `client/marketing/` — the current year's public marketing site (Next.js). Themed per hackathon, deployed independently to Vercel, and consumes `/v1/public/*`.
 
-Local dev ports: backend `8080`, portal `3000`, marketing `3001`. Port 3000 is pinned for the portal by `FRONTEND_URL` and the SuperTokens `WebsiteDomain`, so marketing takes 3001.
+The public marketing site lives in a **separate repository** (`hackutd/harp-marketing`). It is redesigned per hackathon, deployed independently to Vercel, and consumes `/v1/public/*` with an API key. It is not part of this repo or the Docker build.
+
+Local dev ports: backend `8080`, portal `3000`. Port 3000 is pinned for the portal by `FRONTEND_URL` and the SuperTokens `WebsiteDomain`, so the marketing site takes 3001 when run alongside.
 
 ## Commands
 
@@ -42,17 +43,6 @@ Note: `air` runs `task gen-docs` as a pre-command on every rebuild, so `swag` CL
 | `npm run lint`         | Run ESLint                               |
 | `npm run format`       | Auto-format with Prettier                |
 | `npm run format:check` | Check formatting (runs in CI)            |
-
-### Marketing site (`client/marketing/`)
-
-| Command                | Description                            |
-| ---------------------- | -------------------------------------- |
-| `npm run dev`          | Start Next dev server (port 3001)      |
-| `npm run build`        | Production build (Vercel runs this)    |
-| `npm run lint`         | Run ESLint                             |
-| `npm run typecheck`    | `next typegen` + `tsc --noEmit` (CI)   |
-| `npm run format`       | Auto-format with Prettier              |
-| `npm run format:check` | Check formatting (runs in CI)          |
 
 ### Dev Tool Prerequisites
 
@@ -121,13 +111,13 @@ Tests live in `cmd/api/` (`_test.go` files, same package as handlers):
 - **Forms:** React Hook Form + Zod validation
 - **Auth client:** `supertokens-auth-react`
 
-### Marketing Site (Next.js 16 + React 19)
+### Public content API (consumed by the marketing site)
 
-- **Location:** `client/marketing/` — App Router, no `src/` dir, `@/*` → `./*`
-- **Styling:** Tailwind CSS v4
-- **Data:** `lib/api.ts` wraps `/v1/public/{schedule,sponsors,faq}`. That route group sits behind `APIKeyMiddleware`, so the key is a shared secret: the module is marked `server-only` and its env vars (`HARP_API_BASE_URL`, `HARP_PUBLIC_API_KEY`) are deliberately **not** `NEXT_PUBLIC_`. Fetch only from Server Components — importing `lib/api.ts` into a Client Component is a build error.
-- **Types:** `lib/types.ts` mirrors the Go structs in `internal/store/`; update both together.
-- **Deploy:** its own Vercel project (Root Directory `client/marketing`), independent of the Cloud Run deploy. Excluded from the Docker build context via `.dockerignore`.
+The marketing site is a **separate repository** (`hackutd/harp-marketing`, Next.js). It is not built, tested, or deployed from here. What matters in this repo is the contract it depends on:
+
+- `/v1/public/{schedule,sponsors,faq}` sits behind `APIKeyMiddleware` (`cmd/api/api.go`), which compares an `X-API-Key` header against `PUBLIC_API_KEY`. These routes need no user session but are **not** unauthenticated — the key is a shared secret.
+- The marketing repo's `lib/types.ts` mirrors the Go structs in `internal/store/`. That coupling now spans two repositories and nothing here will catch a drift: **changing the shape of a `/v1/public/*` response is a breaking change for the marketing site**, so update it in the same sitting.
+- Sponsor logos ship as raw base64 in `logo_data` plus `logo_content_type`, not URLs — so the sponsors payload grows with every sponsor.
 
 ### Frontend-Backend Connection
 
@@ -167,18 +157,17 @@ Runs on every push/PR to `main` (`.github/workflows/audit.yaml`):
 
 - **Go:** gofmt check, `go mod verify`, build, `go vet`, `staticcheck`, `go test -race ./...`
 - **Portal:** `npm run format:check`, `npm run lint`, `npm run build`, `npm audit --audit-level=high`
-- **Marketing:** `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm audit --audit-level=high` — no `next build`, since Vercel owns the build and holds the API key
 
 ## Deployment & Infrastructure
 
-- **CI:** GitHub Actions (`.github/workflows/audit.yaml`) runs on every push/PR to `main` — three jobs: `backend-audit`, `frontend-audit` (portal), `marketing-audit`
+- **CI:** GitHub Actions (`.github/workflows/audit.yaml`) runs on every push/PR to `main` — two jobs: `backend-audit`, `frontend-audit` (portal)
 - **CD:** Merges to `main` trigger Google Cloud Build → Google Cloud Run (auto-deploy)
 - **Container:** Multi-stage `Dockerfile` — builds frontend (Node 22), builds Go binary, runs from `scratch` image on port 8080. Frontend is compiled at build time and served as static files
 - **Database:** Neon DB (managed PostgreSQL)
 - **File Storage:** Google Cloud Storage (GCS)
 - **Auth:** SuperTokens (self-hosted or managed, free tier: 5,000 MAUs) — Passwordless + Google OAuth
 - **Email:** SendGrid
-- **Marketing site:** separate Vercel project off the same repo, Root Directory `client/marketing` — not part of the Cloud Run deploy
+- **Marketing site:** its own repository (`hackutd/harp-marketing`) and its own Vercel project — not part of this repo or the Cloud Run deploy
 
 ## Git Conventions
 
