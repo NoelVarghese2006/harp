@@ -13,7 +13,9 @@
     "strict": true,
     "types": ["vite/client"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/branding": ["./branding/index.ts"],
+      "@/branding/*": ["./branding/*"]
     }
   },
   "include": ["src/sw.ts"]

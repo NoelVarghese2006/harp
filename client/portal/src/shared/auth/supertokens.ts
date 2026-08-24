@@ -3,13 +3,15 @@ import Passwordless from "supertokens-auth-react/recipe/passwordless";
 import Session from "supertokens-auth-react/recipe/session";
 import ThirdParty, { Google } from "supertokens-auth-react/recipe/thirdparty";
 
+import { branding } from "@/branding";
+
 export const isGoogleAuthEnabled =
   import.meta.env.VITE_GOOGLE_AUTH_ENABLED === "true";
 
 export function initSuperTokens() {
   SuperTokens.init({
     appInfo: {
-      appName: "HackUTD Harp",
+      appName: branding.authAppName,
       apiDomain: window.location.origin,
       websiteDomain: window.location.origin,
       apiBasePath: "/auth",

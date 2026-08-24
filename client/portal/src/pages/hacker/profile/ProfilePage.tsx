@@ -13,6 +13,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { signOut } from "supertokens-auth-react/recipe/session";
 
+import { branding } from "@/branding";
 import { AdminPortalButton } from "@/components/AdminPortalButton";
 import {
   AlertDialog,
@@ -133,7 +134,7 @@ export default function ProfilePage() {
 
   const handleInstallClick = () => {
     if (install.platform === "ios") {
-      toast("Add HARP to your home screen", {
+      toast(`Add ${branding.appName} to your home screen`, {
         description: (
           <span>
             <span className="inline-flex items-center gap-1 whitespace-nowrap">
@@ -146,9 +147,8 @@ export default function ProfilePage() {
       return;
     }
     if (install.platform === "desktop") {
-      toast("Open HARP on your phone", {
-        description:
-          "Add HARP to your phone's home screen to get notified about your application status.",
+      toast(`Open ${branding.appName} on your phone`, {
+        description: `Add ${branding.appName} to your phone's home screen to get notified about your application status.`,
       });
       return;
     }

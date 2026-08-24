@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute } from "workbox-precaching";
 
+import { branding } from "@/branding";
+
 declare const self: ServiceWorkerGlobalScope;
 
 self.addEventListener("install", () => {
@@ -47,7 +49,7 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const title = data.title ?? "HARP";
+  const title = data.title ?? branding.appName;
   const options: NotificationOptions = {
     body: data.body ?? "",
     data: { url: resolveSameOriginNotificationUrl(data.url), id: data.id },
