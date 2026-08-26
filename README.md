@@ -11,12 +11,12 @@
 
 Running a hackathon often means piecing together forms, spreadsheets, email tools, schedules, and check-in systems. Harp brings that work into one place. It helps organizers manage the event from the moment applications open through the final day of the hackathon.
 
-The Go backend sits at the center of Harp. It handles the work behind applications, reviews, acceptances and rejections, schedules, walk-in queues, user access, event settings, and live event data. Two web experiences are built around it:
+The Go backend sits at the center of Harp. It handles the work behind applications, reviews, acceptances and rejections, schedules, walk-in queues, user access, event settings, and live event data. Two web experiences connect to it:
 
-- A **React portal** gives hackers, reviewers, organizers, and super admins the tools they need.
-- A **Next.js marketing site** introduces the event to the public and pulls changing schedules, FAQs, and sponsor information from the backend.
+- The **React portal in this repository** gives hackers, reviewers, organizers, and super admins the tools they need.
+- A **Next.js marketing site in a separate repository** introduces the event to the public and pulls changing schedules, FAQs, and sponsor information from the backend.
 
-The marketing site is deliberately separate from the portal. Every iteration of a hackathon should redesign it to match that year's theme and identity. The underlying event data and organizer workflows can stay in Harp, so a fresh public experience does not mean rebuilding the whole platform.
+The marketing site is deliberately kept outside this repository. Teams should begin with the base template and redesign it for every iteration of their hackathon so the site matches that year's theme and identity. The event data and organizer workflows stay in Harp, so creating a fresh public experience does not mean rebuilding the systems behind it.
 
 ## Application walkthrough
 
@@ -86,7 +86,7 @@ Harp is useful for more than registration. Organizers can set up a new event, wo
 - Frequently asked question management
 - A public schedule managed from the organizer portal
 - API-backed content for the marketing site, keeping fast-changing information in one place
-- A marketing site that can and should be redesigned for every iteration of the hackathon
+- A separate marketing site template that can be redesigned for every iteration of the hackathon
 
 ### Administration and reuse
 
@@ -104,39 +104,54 @@ flowchart LR
     organizers["Reviewers and organizers"] --> portal
     visitors["Public visitors"] --> marketing
 
-    subgraph harp["Harp platform"]
+    subgraph core["This repository"]
         portal["React portal / PWA<br/>Hacker and organizer workflows"]
-        marketing["Next.js marketing site<br/>Public event experience"]
         api["Go API<br/>Business rules and system of record"]
 
         portal -->|"Authenticated /v1 API"| api
-        marketing -->|"API-key requests to /v1/public"| api
     end
 
+    subgraph marketingRepo["Separate marketing repository"]
+        marketing["Next.js marketing site<br/>Public event experience"]
+    end
+
+    marketing -->|"API-key requests to /v1/public"| api
     api --> database[("PostgreSQL")]
     api --> auth["SuperTokens<br/>Authentication"]
     api --> storage["Google Cloud Storage<br/>Resumes and assets"]
     api --> delivery["Email, Web Push,<br/>and Apple Wallet"]
 ```
 
-The Go backend is the shared source of truth. The portal uses authenticated, role-aware endpoints for hacker and organizer work. The marketing site uses a smaller public-content API for schedules, FAQs, and sponsor data. Organizers can update that information once, and every site that consumes the API can show the latest version.
+This repository contains the shared backend and the authenticated portal. The marketing site lives in its own repository and connects to the Go service through the public-content API. Organizers can update schedules, FAQs, and sponsors once, and the separate marketing site can show the latest version without copying that data into its own codebase.
 
 ## The three core services
 
-| Service                    | Location              | Responsibility                                                                                                           |
-| -------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Go backend**             | `cmd/api`, `internal` | Owns business logic, authorization, applications, reviews, decisions, event operations, public content, and persistence. |
-| **React portal**           | `client/portal`       | Provides the authenticated hacker, admin, and super-admin experience as a Vite-powered PWA.                              |
-| **Next.js marketing site** | `client/marketing`    | Provides the public event website and renders frequently updated content from the Go public API.                         |
+| Service                    | Location                           | Responsibility                                                                                                           |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Go backend**             | This repository: `cmd/api`, `internal` | Owns business logic, authorization, applications, reviews, decisions, event operations, public content, and persistence. |
+| **React portal**           | This repository: `client/portal`   | Provides the authenticated hacker, admin, and super-admin experience as a Vite-powered PWA.                              |
+| **Next.js marketing site** | Separate template repository       | Provides the public event website and renders frequently updated content from the Go public API.                         |
+
+## Marketing site template
+
+The reusable Next.js marketing template is maintained in a separate GitHub repository. Start from that template for each hackathon, then redesign it around the new event's theme while keeping the public API connection in place.
+
+<!--
+Replace the line below with a link when the marketing template repository is ready:
+
+[Marketing site base template](https://github.com/your-organization/your-marketing-template)
+-->
+
+_Marketing site base template repository link coming soon._
 
 ## Technology at a glance
 
 - **Backend:** Go, Chi, PostgreSQL
 - **Portal:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui
-- **Marketing:** Next.js, React, TypeScript, Tailwind CSS
+- **Marketing template, separate repository:** Next.js, React, TypeScript, Tailwind CSS
 - **Platform services:** SuperTokens, Google Cloud Storage, email delivery, Web Push, Apple Wallet
 - **Delivery:** Docker-based local and production workflows
 
 ## Design principle
 
-Hackathon software should make the event easier to run. Harp keeps event content, settings, applicants, schedules, and live operations in one backend. The participant portal can stay familiar from year to year, while the marketing site should be redesigned for each new iteration of the hackathon. That gives every event its own personality without forcing the team to rebuild the systems behind it.
+Hackathon software should make the event easier to run. Harp keeps event content, settings, applicants, schedules, and live operations in one backend. The portal can stay familiar from year to year, while each hackathon gets a newly designed marketing site in its own repository. That gives every event its own personality without forcing the team to rebuild the systems behind it.

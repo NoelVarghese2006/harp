@@ -46,6 +46,7 @@ function report_error(message) {
   } else if (pair_stem[version] != stem) {
     report_error("version " version " is used by both " pair_stem[version] \
       " and " stem)
+    collision = 1
   }
 
   if (version_number > max_version) {
@@ -77,6 +78,21 @@ END {
       report_error("version " version " has " down_count \
         " down migrations; expected exactly 1")
     }
+  }
+
+  if (collision) {
+    print "" > "/dev/stderr"
+    print "Two migrations claim the same version. Renumber one of them above" \
+      > "/dev/stderr"
+    print "the current maximum, keeping the sequence contiguous." \
+      > "/dev/stderr"
+    print "" > "/dev/stderr"
+    print "On a fork, renumber your own migration rather than the upstream" \
+      > "/dev/stderr"
+    print "one, and see cmd/migrate/migrations/README.md before you do -- if" \
+      > "/dev/stderr"
+    print "it has already been applied, schema_migrations needs fixing too." \
+      > "/dev/stderr"
   }
 
   if (failed) {

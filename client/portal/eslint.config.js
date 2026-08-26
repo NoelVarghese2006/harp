@@ -34,6 +34,11 @@ export default defineConfig([
         { type: "layouts", pattern: "src/layouts/*" },
         { type: "pages", pattern: "src/pages/*" },
         { type: "app", pattern: "src/*.{ts,tsx}" },
+        // Fork-owned brand surface. Every layer may read it; it imports
+        // nothing, which is what keeps it safe for a fork to edit freely.
+        { type: "branding", pattern: "branding/*" },
+        // vite.config.ts — last, so the more specific patterns above win.
+        { type: "config", pattern: "*.{ts,tsx}" },
       ],
     },
     rules: {
@@ -48,25 +53,37 @@ export default defineConfig([
           default: "disallow",
           rules: [
             // shared/ can only import from shared/
-            { from: "shared", allow: ["shared"] },
+            { from: "shared", allow: ["shared", "branding"] },
 
             // components/ can import from shared/, components/
-            { from: "components", allow: ["shared", "components"] },
+            { from: "components", allow: ["shared", "components", "branding"] },
 
             // layouts/ can import from shared/, components/, pages/ (for shared admin components)
-            { from: "layouts", allow: ["shared", "components", "pages"] },
+            {
+              from: "layouts",
+              allow: ["shared", "components", "pages", "branding"],
+            },
 
             // pages/ can import from anything
             {
               from: "pages",
-              allow: ["shared", "components", "layouts", "pages"],
+              allow: ["shared", "components", "layouts", "pages", "branding"],
             },
 
             // Root app files can import from anything
             {
               from: "app",
-              allow: ["shared", "components", "layouts", "pages"],
+              allow: ["shared", "components", "layouts", "pages", "branding"],
             },
+
+            // vite.config.ts reads branding to build the PWA manifest and to
+            // substitute the index.html placeholders.
+            { from: "config", allow: ["branding"] },
+
+            // branding/ imports nothing. It is consumed by three TypeScript
+            // projects with different libs (app/DOM, service worker/WebWorker,
+            // vite config/node), so a dependency here would break one of them.
+            { from: "branding", allow: [] },
           ],
         },
       ],

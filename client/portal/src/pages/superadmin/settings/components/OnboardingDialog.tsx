@@ -339,7 +339,7 @@ export function OnboardingDialog({
                   </Label>
                   <Input
                     id="onboarding-name"
-                    placeholder="HackUTD 2026"
+                    placeholder="Hackathon 2026"
                     value={values.hackathon_name}
                     disabled={loading || saving}
                     onChange={(e) => setField("hackathon_name", e.target.value)}
@@ -437,7 +437,7 @@ export function OnboardingDialog({
                     </Label>
                     <Input
                       id="onboarding-from-name"
-                      placeholder="HackUTD"
+                      placeholder="Hackathon"
                       value={values.from_name}
                       disabled={loading || saving}
                       onChange={(e) => setField("from_name", e.target.value)}

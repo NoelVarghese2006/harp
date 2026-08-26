@@ -24,6 +24,16 @@ jobs:
           # this is a built-in strategy in release-please, see "Action Inputs"
           # for more options
           release-type: simple
+          # Stay pre-1.0 on purpose. Without this a single `BREAKING CHANGE:`
+          # footer bumps 0.x straight to 1.0.0; with it, breaking changes bump
+          # the minor version until we deliberately cut 1.0.
+          #
+          # The version line is anchored by the v0.9.0 tag. release-please
+          # finds the previous release from GitHub Releases, falling back to
+          # scanning tags — it does NOT read version.txt. If every tag and
+          # release is ever deleted again it will propose its hardcoded 1.0.0
+          # initial version, which is exactly what happened in PR #85.
+          bump-minor-pre-major: true
 
       - name: Check out the released commit
         if: ${{ steps.release.outputs.release_created == 'true' }}

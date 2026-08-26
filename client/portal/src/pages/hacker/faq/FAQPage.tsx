@@ -50,7 +50,7 @@ export default function FAQPage() {
         FAQ
       </h1>
       <p className="mt-1 text-sm font-light text-[#6B6B6B]">
-        Answers to common questions about HackUTD.
+        Answers to common questions about the event.
       </p>
 
       {loading ? (

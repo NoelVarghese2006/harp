@@ -5,7 +5,7 @@ import { useSessionContext } from "supertokens-auth-react/recipe/session";
 import { redirectToThirdPartyLogin } from "supertokens-auth-react/recipe/thirdparty";
 
 import googleIcon from "@/assets/google_icon.webp";
-import logo from "@/assets/logo.webp";
+import logo from "@/branding/assets/logo.webp";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { isGoogleAuthEnabled } from "@/shared/auth";
@@ -202,8 +202,7 @@ export default function Login() {
           )}
 
           <p className="text-center text-xs font-light text-[#B8B8B8]">
-            By continuing, you agree to HackUTD's Terms of Service and Privacy
-            Policy
+            By continuing, you agree to our Terms of Service and Privacy Policy
           </p>
         </div>
       </div>

@@ -49,7 +49,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  Complete your hacker application to participate in HackUTD
+                  Complete your hacker application to participate
                 </p>
                 <Link to="/app/apply">
                   <Button className="w-full">Go to Application</Button>
