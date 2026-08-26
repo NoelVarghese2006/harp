@@ -36,6 +36,24 @@ Library**.
 - **Config:** test configuration lives in `vitest.config.ts`, separate from
   `vite.config.ts` so the PWA plugin never loads during tests.
 
-Component coverage is staged: after SearchBar, prioritize high-risk
-forms/dialogs, grading and schedule interactions, hacker pages, then
-auth/layout behavior.
+- **Component tests:** use semantic Testing Library queries and
+  `@testing-library/user-event` for interactions — no snapshots, no
+  implementation-detail assertions. Radix-based components work in jsdom;
+  shared setup stubs `ResizeObserver` for them.
+
+## Testing roadmap
+
+The initial suite covers pure utilities (date/time, schema validation,
+notification/user helpers), the centralized API client, all Zustand stores
+(applicant/review, grading, sponsor/notification, application-schema/
+user-management), and one representative component test (`SearchBar`).
+
+Future component coverage is staged in priority order:
+
+1. High-risk forms and dialogs (application submit, destructive admin actions)
+2. Grading and schedule interactions (drag-select, vote/advance flows)
+3. Hacker pages (schedule rendering, application status)
+4. Auth and layout behavior (route guards, session-aware chrome)
+
+Each stage should follow the `SearchBar` conventions: mock external boundaries
+at module level, query semantically, assert observable behavior only.
