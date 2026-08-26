@@ -37,32 +37,38 @@ function errorResponse(error: string | null, status = 400): Response {
 }
 
 /** Maps a method name to its exported request factory. */
-function requestFor(method: string) {
-  const requests: Record<string, (...args: unknown[]) => Promise<unknown>> = {
-    GET: (endpoint: string, _ctx: unknown, signal: unknown) =>
-      getRequest(endpoint, undefined, signal as AbortSignal),
-    POST: (
-      endpoint: string,
-      body: unknown,
-      _ctx: unknown,
-      signal?: AbortSignal,
-    ) => postRequest(endpoint, body, undefined, signal),
-    PUT: (
-      endpoint: string,
-      body: unknown,
-      _ctx: unknown,
-      signal?: AbortSignal,
-    ) => putRequest(endpoint, body, undefined, signal),
-    PATCH: (
-      endpoint: string,
-      body: unknown,
-      _ctx: unknown,
-      signal?: AbortSignal,
-    ) => patchRequest(endpoint, body, undefined, signal),
-    DELETE: (endpoint: string, _ctx: unknown, signal?: AbortSignal) =>
-      deleteRequest(endpoint, undefined, signal),
-  };
-  return requests[method];
+function requestFor(
+  method: string,
+): (...args: any[]) => Promise<{ status: number }> {
+  switch (method) {
+    case "GET":
+      return (endpoint: string, errorContext: string, signal?: AbortSignal) =>
+        getRequest(endpoint, errorContext, signal);
+    case "POST":
+      return (
+        endpoint: string,
+        body: unknown,
+        errorContext: string,
+        signal?: AbortSignal,
+      ) => postRequest(endpoint, body, errorContext, signal);
+    case "PUT":
+      return (
+        endpoint: string,
+        body: unknown,
+        errorContext: string,
+        signal?: AbortSignal,
+      ) => putRequest(endpoint, body, errorContext, signal);
+    case "PATCH":
+      return (
+        endpoint: string,
+        body: unknown,
+        errorContext: string,
+        signal?: AbortSignal,
+      ) => patchRequest(endpoint, body, errorContext, signal);
+    default:
+      return (endpoint: string, errorContext: string, signal?: AbortSignal) =>
+        deleteRequest(endpoint, errorContext, signal);
+  }
 }
 
 describe("request method plumbing against mocked fetch", () => {
@@ -124,7 +130,7 @@ describe("API error envelopes and fallbacks surface consistently", () => {
     "%s falls back to the context message when the envelope is empty",
     async (method, endpoint, expected) => {
       fetchMock.mockResolvedValue(errorResponse(null, 500));
-      const res = (await requestFor(method)(endpoint, {})) as {
+      const res = (await requestFor(method)(endpoint)) as {
         status: number;
         data?: unknown;
         error?: string;
